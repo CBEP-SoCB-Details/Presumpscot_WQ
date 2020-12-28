@@ -788,11 +788,18 @@ glm_emm <- emmeans(thglm, 'Site', type = 'response')
 glm_fit <- summary(glm_emm)
 ```
 
+The State instantaneous water quality criteria formally apply over a 90
+day period, and observations are allowed to exceed the instantaneous
+standard no more than 10% of the time.
+
 ``` r
 plot(glm_fit) +
   theme_cbep(base_size = 12) +
   ylab('') +
-  xlab('Probability of Failing Instantaneous Standard')
+  xlab('Probability of Failing Instantaneous Standard') +
+  theme(axis.title.x = element_text(size = 9)) +
+  geom_vline(xintercept = 0.1) +
+  annotate('text', x = 0.05, y = 35, label = '10% Threshold', angle = 90)
 ```
 
 <img src="E.coli_Analysis_files/figure-gfm/unnamed-chunk-37-1.png" style="display: block; margin: auto;" />
