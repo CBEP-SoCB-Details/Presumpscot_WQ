@@ -860,6 +860,8 @@ glm_fit <- glm_fit %>%
   select(-SE, -df)
 
 Ecoli_gmeans <- Ecoli_gmeans %>%
+  rename(gm_LC = lower.CL,
+         gm_UC = upper.CL) %>%
   left_join(glm_fit, by = 'Site')
 ```
 
