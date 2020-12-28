@@ -1,0 +1,289 @@
+---
+title: "Data Analysis for Presumpscot WQ Monitoring Data"
+author:  "Curtis C. Bohlen, Casco Bay Estuary Partnership"
+date: "12/19/2020"
+output:
+  github_document:
+    toc: true
+    fig_width: 5
+    fig_height: 4
+---
+
+<img
+  src="https://www.cascobayestuary.org/wp-content/uploads/2014/04/logo_sm.jpg"
+  style="position:absolute;top:10px;right:50px;" />
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.align = 'center',
+                      fig.width = 5, fig.height = 4,
+                      collapse = TRUE, comment = "#>")
+```
+
+#Introduction
+This notebook provides a  look at data derived from eleven years of a volunteer water quality monitoring managed by Presumpscot River Watch (PRW), and more recently, by the Preosmpscot Land Trust (PRLT). The data were delivered to CBEP by staff at PRLT in March of 2020, incorporating data through 2019.  PRW began submitting data to DEP in 2009, so the data reviewed here only goes back that far.
+
+The goal of this  analysis was to create graphics for the 2020 State of the Bay Report. A secondary purpose is to compare observed conditions  to Maine's water quality standards, and look for any temporal patterns that could  inform consideration of recalssification of lower stretches of the river.
+
+# Maine's Numeric Water Quality Standards
+Maine's numerical water quality standards for the summer months, as laid out in statute (38 MRSA 465) are as follows:
+
+|Class|DO ppm "Instantaneous"|DO ppm 30 Day Avg|Percent Saturation|*E. coli* (# per 100 ml) Instantaneous|*E. coli* (# per 100 ml)Geom. Mean|
+------|-------|-------|-------|-------|-------|
+| A | 7 | | 75 % | | |
+| B | 7 | | 75 % | 236 | 64 |
+| C | 5 | 6.5 | 60 % | 236 | 126 |
+
+(Class "AA" streams are not shown in this table because there are no numerical standards unique to AA streams.)
+Bacteria standards apply over a 90 day period, with the instantaneous standard not to be exceeded more than 10% of the time over a 90 day period.
+
+# Import Libraries
+```{r}
+library(actuar)     # Load this first so it does not conflict with other libraries
+library(fitdistrplus)
+library(VGAM)       # This is a huge package
+library(readr)
+library(tidyverse)
+library(MASS)
+
+library(CBEPgraphics)
+load_cbep_fonts()
+theme_set(theme_cbep())
+
+```
+
+# Import Data
+```{r}
+sibfldnm <- 'Derived_Data'
+parent <- dirname(getwd())
+sibling <- paste(parent,sibfldnm, sep = '/')
+fn <- 'presumpscot_CORRECTED.csv'
+
+presumpscot_data <- read_csv(file.path(sibling, fn),
+    col_types = cols(Ecoli = col_double(),
+                     X1 = col_skip()))
+
+presumpscot_data <- presumpscot_data %>%
+  select (-Time) %>%
+  mutate(Month = factor(as.numeric(format(Date, '%m')),
+                        labels = month.abb[5:9]))  # Note that as.numeric()
+                                                   # will not give month number
+```
+
+# Correct Probable Data Errors
+Several values are apparent outliers in the source data.  See the notebook
+`Data_QA.QC_AFTER_Corrections,Rmd` for details.  These are data that have
+unlikely or unreasonable values, but for which we could not confirm a data
+handling error, so we remove them here (explicitly)for transparency), rather 
+than in data preparation code.
+
+```{r}
+presumpscot_data <- presumpscot_data %>%
+mutate( PctSat =  replace(PctSat,
+                          Site == 'M030' & Date == as.Date('2014-07-12'), 
+                          NA),
+        PctSat = replace(PctSat,
+                         Site =='PI020' &  Date == as.Date('2014-07-12'),
+                         NA),
+        DO     = replace(DO,
+                         Site =='CW020' &  Date == as.Date('2018-07-29'),
+                         NA),
+        DO     = replace(DO,
+                         Site =='PL045' &  Date == as.Date('2019-06-01'),
+                         NA))
+```
+
+# Create a "surface water only"" data set
+Note that this is not necessary for E.Coli, but is for DO. Dissolved oxygen
+data was collectd for severl years at multiple depths at certain sites.  While
+preliminary analyses suggested that deph had little effect on the DO levels at
+those sites, focusing on a "surface water only" data set simplifies the
+analysis slightly, byt not requiring us to check.
+```{r}
+surface_data <- presumpscot_data %>%
+  filter(is.na(Depth) | Depth == 0)
+```
+
+```{r}
+cat('All Data\n')
+a <- with(presumpscot_data, cbind(length(Ecoli),
+                             sum(! is.na(Ecoli)),
+                             sum(! is.na(DO))))
+colnames(a) <- c('N', 'E.coli', 'DO')
+a
+
+cat('Surface Data\n')
+a <- with(surface_data, cbind(length(Ecoli),
+                         sum(! is.na(Ecoli)),
+                         sum(! is.na(DO))))
+colnames(a) <- c('N', 'E.coli', 'DO')
+a
+rm(a)
+```
+So we dropped 102 DO samples by doing that.  Ther eis no effect on the *E. coli*
+data.
+
+# Lists of Sites for Specific Analyses
+A total of 47 locations have been sampled by PRW ND plt since 2009. The normal
+sampling plan in each year is to sample a fixed number of Saturdays. It appears
+that that number is usually eight to ten.  We often see more than eight sample
+records at a site within a year.  Generally this is because QA/QC replicate
+samples were collected, or DO data were collected at different depths on one
+sample date. Multiple depth samples were only collected in 2011, 2012, and 2013.
+
+Prior analysis has shown little effect of sample depth.  There are SOMETIMES
+substantial differences in observed *E. coli* values for replicate samples,
+expressed as a percent difference.  On a log scale, however, the differences are
+less apparent.
+
+## Identify Sites for Trend Analysis
+Here we create a vector of sites sampled at least five times.  Note that this 
+omits some recent sites, but provides the sites for shich trend analysis may be 
+useful.
+```{r}
+trendsites <- presumpscot_data %>%
+  group_by(Site, Year) %>%
+  summarize(sampled = n()>0,
+            .groups = 'drop_last') %>%
+  summarise(yrssampled = sum(sampled)) %>%
+  filter(yrssampled>=5) %>%
+  pull(Site)
+trendsites
+```
+Twenty nine sites have been sampled at least five times, and thus could be used
+to estimate / study trends.
+
+## Recent Sites
+We look at data collected over the past five years, restricted to sites with
+at least two years of data.  No site with at least two years of data has 
+fewer than 15 samples. This cuts out some sites that have only recently been 
+added to the monitoring program.
+```{r}
+recentsites <- presumpscot_data %>%
+  filter(Year>2014) %>%
+  group_by(Site, Year) %>%
+  summarize(sampled = n()>0,
+            samples = n(),
+            .groups = 'drop_last') %>%
+  summarise(yrssampled = sum(sampled),
+            samples=sum(samples),
+            .groups = 'drop') %>%
+  filter(yrssampled > 1) %>%
+  arrange(samples)
+recentsites
+```
+
+## Sites of Special Interest
+Because of the reclassification, sites in the lower main stem are of particular 
+interest.
+```{r}
+lowermssites <- c("P065", "P060", "P050", "P030", "P020")
+```
+
+
+
+# DO Graphics
+```{r}
+plt <- ggplot(surface_data, aes(DO, PctSat)) + 
+  geom_point(aes(color =factor(Year))) + 
+  geom_smooth() +
+  geom_hline(yintercept=75, color='red') +
+  geom_hline(yintercept=60, color='orange') +
+  
+    geom_vline(xintercept=5, color='red') +
+  geom_vline(xintercept=6.5, color='orange') +
+  geom_vline(xintercept=7, color='yellow') +
+  theme_minimal()
+plt
+```
+
+Note also that this graph looks VERY different from the one that looks only at
+the lower Main Stem.  Conditions are clearly worse there.
+
+
+
+# Dissolved Oxygen Standards
+## Instantaneous Standards (7, 5)
+```{r}
+do_ins <- surface_data %>%
+  filter(! is.na(DO)) %>%
+  group_by(Site, Year) %>%
+  summarise(count = sum(! is.na(DO)),
+            AB = sum(DO >= 7, na.rm = TRUE),
+            C = sum(DO<7 & DO>=5),
+            N = sum(DO < 5 )) %>%
+  pivot_longer(-c(Site,Year, count))
+do_ins %>%
+  pivot_wider(names_from = name, values_from = value)
+```
+
+```{r fig.width=9.5, fig.height=7}
+plt <- ggplot(do_ins, aes(Year, value, fill=name)) +
+  geom_area(position = position_stack()) +   # alternative is position_fill()
+  facet_wrap(~Site)  +
+  labs(title =("Instantaneous DO Standards"),
+       x = "Year",
+       y = " Observations Meeting Class") +
+  scale_fill_viridis_d() + 
+  theme_minimal() +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+  theme(axis.text.x = element_text(angle=90)) +
+  scale_y_continuous(breaks=c(1:6*2)) +
+  scale_x_continuous(labels=scales::number_format(accuracy = 1),
+                     breaks = c(2009, 2011, 2013, 2015, 2017, 2019))
+plt
+
+```
+So, the bottom line is, failure of low DO standards for class B are  rare, 
+and occur at only a couple of locations.
+For some sites, those displays are misleading, because they connect non-adjacent 
+years.
+
+## Instantaneous Saturation Standards (75%, 60%)
+```{r}
+ps_ins <- surface_data %>%
+  filter(Year>2016) %>%
+  filter(! is.na(PctSat)) %>%
+  filter(Site %in% lowermssites) %>%
+  group_by(Site, Year) %>%
+  summarise(count = sum(! is.na(PctSat)),
+            AB = sum(PctSat>=75, na.rm=TRUE),
+            C = sum(PctSat<75 & PctSat>=60, na.rm=TRUE),
+            N = sum(PctSat<60, na.rm=TRUE)) %>%
+  pivot_longer(-c(Site,Year, count))
+ps_ins %>%
+  pivot_wider(names_from = name, values_from = value)
+```
+
+
+```{r}
+plt <- ggplot(ps_ins, aes(Year, value, fill=name)) +
+  geom_area(position = position_stack()) +
+  facet_wrap(~Site)  +
+  scale_x_continuous(breaks=c(2017, 2018, 2019)) +
+  scale_y_continuous(breaks=c(1:6*2))
+
+plt
+```
+
+So, failure of the Pct Saturation standards happened only once, in June of 2019.
+No temperature data was provided for that date, but the raw DO value is also
+low.  Why did that not turn up as a violation of the low DO condition too?
+Meeting class C, but not CLass B standards occured onlky three times, at
+different sites.
+
+
+But we have problems -- things are not being picked up.  note the following.
+First, not the Pct Sat is exceptionally low -- which appears impossible so there
+is an error.  But not that hte data was not correctly classified.
+
+```{r}
+(m<-min(surface_data$PctSat, na.rm=TRUE))
+surface_data[which(surface_data$PctSat==m),]
+```
+
+
+```{r}
+(m<-min(surface_data$DO, na.rm=TRUE))
+surface_data[which(surface_data$DO==m),]
+```
+This is also a probable error.
