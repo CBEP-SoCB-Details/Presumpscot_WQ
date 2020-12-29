@@ -27,6 +27,7 @@ Curtis C. Bohlen, Casco Bay Estuary Partnership
           - [Construct a Linear Mixed
             Model](#construct-a-linear-mixed-model)
   - [Export Tabular Data for GIS](#export-tabular-data-for-gis)
+      - [Add Code To calculate Class](#add-code-to-calculate-class)
   - [Complex Site by Time Graphics](#complex-site-by-time-graphics)
       - [Instantaneous DO Standards (7, 5
         mg/l)](#instantaneous-do-standards-7-5-mgl)
@@ -758,7 +759,44 @@ ps_ins <- presumpscot_data %>%
 ``` r
 do_results <- do_ins %>%
   full_join(ps_ins, by = 'Site')
+```
 
+## Add Code To calculate Class
+
+To Calculate teh Observed Class, we need to look at the probability of
+violating water quality thresholds.
+
+Technically, any violation of standards for dissolved oxygen controls
+whether a violation of water quality standards has occurred. But on some
+level, with a long record, we may want to be more forgiving and allow a
+rare problem. In the following, we accept zero or one exceedences of a
+standard before we declare the site to have failed that standard.
+
+``` r
+do_results <- do_results %>%
+mutate(DO_Meets = if_else(DO_NA < 2,
+                          if_else(DO_C < 2,
+                                  'Class AB',
+                                  'Class C'),
+                          'Class NA'),
+       PS_Meets = if_else(PS_NA < 2,
+                          if_else(PS_C < 2,
+                                  'Class AB',
+                                  'Class C'),
+                          'Class NA'
+                           ),
+       Both_Meets =  if_else(DO_NA < 2 & PS_NA < 2,
+                          if_else(DO_C < 2 & PS_C < 2,
+                                  'Class AB',
+                                  'Class C'),
+                          'Class NA')) %>%
+  
+  # The following has no effect on the achieved classification in our data.
+  # We include it here for completeness.
+  mutate(All_Meets = if_else(DO_Avg < 6.5, 'Class NA', Both_Meets))
+```
+
+``` r
 write_csv(do_results, 'DO_Results.csv')
 ```
 
@@ -806,7 +844,7 @@ plt <- do_ins %>%
 plt
 ```
 
-<img src="DO_Analysis_files/figure-gfm/unnamed-chunk-34-1.png" style="display: block; margin: auto;" />
+<img src="DO_Analysis_files/figure-gfm/unnamed-chunk-36-1.png" style="display: block; margin: auto;" />
 So, the bottom line is, failure of low DO standards for class B are
 rare, and occur at only a couple of locations. For some sites, the
 displays are misleading, because they fail to connect non-adjacent
@@ -855,7 +893,7 @@ plt <- ps_ins %>%
 plt
 ```
 
-<img src="DO_Analysis_files/figure-gfm/unnamed-chunk-36-1.png" style="display: block; margin: auto;" />
+<img src="DO_Analysis_files/figure-gfm/unnamed-chunk-38-1.png" style="display: block; margin: auto;" />
 
 So, failure of the Pct Saturation standards happened only a few times
 also, and only at a handful of sites.
