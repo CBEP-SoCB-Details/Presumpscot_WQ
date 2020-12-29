@@ -115,7 +115,7 @@ to estimate / study trends.
 
 ## Recent Sites
 We look at data collected over the past five years, restricted to sites with
-at least two years of data.  No site with at least two years of data has 
+at least two years of data.  No site with at least three years of data has 
 fewer than 15 samples. This cuts out some sites that have only recently been 
 added to the monitoring program, and some that have not been monitored recently.
 ```{r}
@@ -128,7 +128,7 @@ recentsites <- presumpscot_data %>%
   summarise(yrssampled = sum(sampled),
             samples=sum(samples),
             .groups = 'drop') %>%
-  filter(yrssampled > 1) %>%
+  filter(yrssampled > 2) %>%
   arrange(samples)
 recentsites
 ```

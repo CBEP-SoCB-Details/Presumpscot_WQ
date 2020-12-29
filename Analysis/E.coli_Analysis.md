@@ -186,8 +186,8 @@ be used to estimate / study trends.
 ## Recent Sites
 
 We look at data collected over the past five years, restricted to sites
-with at least two years of data. No site with at least two years of data
-has fewer than 15 samples. This cuts out some sites that have only
+with at least two years of data. No site with at least three years of
+data has fewer than 15 samples. This cuts out some sites that have only
 recently been added to the monitoring program, and some that have not
 been monitored recently.
 
@@ -201,23 +201,23 @@ recentsites <- presumpscot_data %>%
   summarise(yrssampled = sum(sampled),
             samples=sum(samples),
             .groups = 'drop') %>%
-  filter(yrssampled > 1) %>%
+  filter(yrssampled > 2) %>%
   arrange(samples)
 recentsites
-#> # A tibble: 40 x 3
+#> # A tibble: 34 x 3
 #>    Site  yrssampled samples
 #>    <chr>      <int>   <int>
-#>  1 N010           2      14
-#>  2 L060           2      18
-#>  3 OB020          3      18
-#>  4 L020           3      19
-#>  5 SW010          2      20
-#>  6 SW020          2      20
-#>  7 SW030          2      20
-#>  8 SW040          2      20
-#>  9 P160           3      25
-#> 10 BL020          3      26
-#> # ... with 30 more rows
+#>  1 OB020          3      18
+#>  2 L020           3      19
+#>  3 P160           3      25
+#>  4 BL020          3      26
+#>  5 IN010          3      26
+#>  6 PL030          3      26
+#>  7 P050           3      27
+#>  8 P065           3      28
+#>  9 P089           3      28
+#> 10 P170           3      29
+#> # ... with 24 more rows
 ```
 
 ``` r
