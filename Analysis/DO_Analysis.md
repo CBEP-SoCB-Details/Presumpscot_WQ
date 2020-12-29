@@ -787,13 +787,13 @@ mutate(DO_Meets = if_else(DO_NA < 2,
                            ),
        Both_Meets =  if_else(DO_NA < 2 & PS_NA < 2,
                           if_else(DO_C < 2 & PS_C < 2,
-                                  'Class AB',
-                                  'Class C'),
-                          'Class NA')) %>%
+                                  'AB',
+                                  'C'),
+                          'NA')) %>%
   
   # The following has no effect on the achieved classification in our data.
   # We include it here for completeness.
-  mutate(All_Meets = if_else(DO_Avg < 6.5, 'Class NA', Both_Meets))
+  mutate(All_Meets = if_else(DO_Avg < 6.5, 'NA', Both_Meets))
 ```
 
 ``` r
