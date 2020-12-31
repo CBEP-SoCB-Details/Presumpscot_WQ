@@ -1,7 +1,7 @@
-Data Analysis for Presumpscot WQ Monitoring Data
+Analysis of Bacteria Data from Presumpscot Monitoring
 ================
 Curtis C. Bohlen, Casco Bay Estuary Partnership
-12/19/2020
+12/30/2020
 
   - [Introduction](#introduction)
       - [Maine’s Numeric Water Quality
@@ -15,25 +15,26 @@ Curtis C. Bohlen, Casco Bay Estuary Partnership
       - [Sites for Trend Analysis](#sites-for-trend-analysis)
       - [Recent Sites](#recent-sites)
   - [*E. coli* Histograms](#e.-coli-histograms)
-  - [What type of distribution fits?](#what-type-of-distribution-fits)
-  - [Compare possible distributions](#compare-possible-distributions)
+  - [What Distribution Fits?](#what-distribution-fits)
+  - [Compare Possible Distributions](#compare-possible-distributions)
       - [Direct Fits Using VGLM](#direct-fits-using-vglm)
-          - [Explore Lognormal Fits](#explore-lognormal-fits)
+          - [Comparing Two Different Lognormal
+            Fits](#comparing-two-different-lognormal-fits)
           - [Prepare Gamma Fit for
             Graphing](#prepare-gamma-fit-for-graphing)
       - [Plot Candidate Distributions](#plot-candidate-distributions)
       - [QQPlots](#qqplots)
-      - [Compare log likelihoods](#compare-log-likelihoods)
-  - [Simple Loglinear Models](#simple-loglinear-models)
-  - [Refit Models Based Only on Recent
-    Data](#refit-models-based-only-on-recent-data)
-      - [Explore The Mixed Model](#explore-the-mixed-model)
-  - [Plot Geometric Means by Site](#plot-geometric-means-by-site)
+      - [Compare Log Likelihoods](#compare-log-likelihoods)
+  - [Linear Models Based on Recent
+    Data](#linear-models-based-on-recent-data)
+      - [Examine The Mixed Model](#examine-the-mixed-model)
   - [Violations of Instantaneous *E. coli*
     Standards](#violations-of-instantaneous-e.-coli-standards)
-      - [Binomial Analysis](#binomial-analysis)
+      - [Binomial Model](#binomial-model)
       - [Graphic by Site and Year](#graphic-by-site-and-year)
-  - [Export Data for GIS](#export-data-for-gis)
+  - [Assemble and Export Data for
+    GIS](#assemble-and-export-data-for-gis)
+  - [Plot Geometric Means by Site](#plot-geometric-means-by-site)
 
 <img
   src="https://www.cascobayestuary.org/wp-content/uploads/2014/04/logo_sm.jpg"
@@ -254,7 +255,7 @@ distribution may work well for these data. But note also that we have an
 excess of elevated values. Why? Note that this level of extreme values
 suggests the geometric means are going to underestimate the real values.
 
-# What type of distribution fits?
+# What Distribution Fits?
 
 ``` r
 presumpscot_data %>%
@@ -279,7 +280,7 @@ the data is more skewed than expected. However, we know there is a lot
 of variation by sites, so the skewness may reflect site by site
 variation.
 
-# Compare possible distributions
+# Compare Possible Distributions
 
 ## Direct Fits Using VGLM
 
@@ -301,7 +302,7 @@ fit.LN <- vglm( Ecoli~ 1, family=lognormal, data = presumpscot_data)
 fit.LN.2 <- lm(log(Ecoli)~ 1, data = presumpscot_data)
 ```
 
-### Explore Lognormal Fits
+### Comparing Two Different Lognormal Fits
 
 The `VGAM` lognormal distribution and the fit to log transformed data
 should provide the same results. at first glance, they do not, but that
@@ -445,7 +446,7 @@ So, both the lognormal and the Pareto distributions work well for these
 data. A still better fit might be possible with a distribution that
 properly handled censored data.
 
-## Compare log likelihoods
+## Compare Log Likelihoods
 
 ``` r
 logLik(fit.Gamma)
@@ -459,13 +460,11 @@ logLik(fit.LN)
 Which actually suggests the lognormal distribution is a slightly better
 fit than Pareto.
 
-# Simple Loglinear Models
-
-We proceed with linear models on log-transformed response variables,
-which implicitly fit the lognormal distribution, and have the added
-advantage of providing predictions that can be readily expressed in
-terms of the geometric mean, which is how the relevant standards are
-written.
+\#\#Test Run: Linear Models on Log Transformed Data We proceed with
+linear models on log-transformed response variables, which implicitly
+fit the lognormal distribution, and have the added advantage of
+providing predictions that can be readily expressed in terms of the
+geometric mean, which is how the relevant standards are written.
 
 ``` r
 oldpar <- par(mfrow = c(2,2))
@@ -617,20 +616,22 @@ Do we can model sites directly, ignoring subtleties about sampling
 history, or we can use multi-level modeling to estimate marginal means
 taking into account sampling history. lets compare results.
 
-# Refit Models Based Only on Recent Data
+# Linear Models Based on Recent Data
 
 We fit a simple linear model, and a model treating Years as a random
 factor, to see if we gain anything by taking into account month to month
-and year to year variation.
+and year to year variation. We restrict attention to the most recent
+five years of record and the sites for which we have sufficient recent
+data to make that reasonable.
 
 ``` r
 thlm <- lm(log(Ecoli) ~ Site, data=presumpscot_data,
-           subset = Site %in% recentsites)
+           subset = Site %in% recentsites & Year > 2014)
 thlmer <- lmer(log(Ecoli) ~ Site + Month + (1 | YearF), data=presumpscot_data,
-           subset = Site %in% recentsites)
+           subset = Site %in% recentsites & Year > 2014)
 ```
 
-## Explore The Mixed Model
+## Examine The Mixed Model
 
 We use the `emmeans` package to extract marginal geometric means and
 confidence intervals.
@@ -707,48 +708,11 @@ We thus see no advantage to using the more complex models for our
 purposes, which is to summarize results in a compact manner for figures
 or GIS.
 
-# Plot Geometric Means by Site
-
-``` r
-Ecoli_gmeans <- lm_fit %>%
-  rename(gm = response) %>%
-  mutate(Clss = if_else(gm <= 64,
-                        'AB',
-                        if_else(gm<= 126,
-                                'C', 'NA')))
-```
-
-``` r
-ggplot(Ecoli_gmeans, aes(x = Site, y = gm)) + 
-  geom_col(aes(fill = Clss)) +
-  geom_linerange(aes(ymin = lower.CL, ymax = upper.CL)) +
-  
-  geom_hline(yintercept = 64, color = cbep_colors2()[1]) +
-  geom_hline(yintercept = 126, color = cbep_colors2()[6]) +
-  
-  annotate('text', x = 26, y = 80,  label = 'Class B Limit', size = 2.5) +
-  annotate('text', x = 26, y = 142, label = 'Class C Limit', size = 2.5) +
-
-  theme_cbep() +
-  scale_fill_manual(values = cbep_colors2()[4:1]) +
-  theme(axis.text.x=element_text(angle=90, vjust = .25, size = 9)) +
-  theme(legend.position = 'none') +
-  
-  xlab('Site') + 
-  ylab('Geometric Mean E.coli\n(CFU/100ml)')
-```
-
-<img src="E.coli_Analysis_files/figure-gfm/unnamed-chunk-33-1.png" style="display: block; margin: auto;" />
-
-``` r
-
-ggsave('figures/geom_means_by_site.pdf',
-       device = cairo_pdf, width = 7, height = 5)
-```
-
-So, notice the obvious pattern. Conditions on the Main Stem (P015
-through P200) are better than in most of the lateral tributaries, many
-of which fail to meet even Class C (geometric mean) standards.
+Rather than expressing classification results in "Class AB’, ‘Class C’,
+‘Non Attainment’ terms, which are unlikely to be widely understood by
+the SoCB audience, we express results in terms of ‘Excellent’, ‘Good’,
+and ‘Poor’, water categories. The thresholds, however, reflect Maine
+water quality standards.
 
 # Violations of Instantaneous *E. coli* Standards
 
@@ -766,7 +730,7 @@ cntfails <- presumpscot_data %>%
             .groups = 'drop')
 ```
 
-## Binomial Analysis
+## Binomial Model
 
 We can conduct a binomial analyses of those data, to evaluate
 differences in probability of failing instantaneous standards. We have
@@ -802,13 +766,13 @@ plot(glm_fit) +
   annotate('text', x = 0.05, y = 35, label = '10% Threshold', angle = 90)
 ```
 
-<img src="E.coli_Analysis_files/figure-gfm/unnamed-chunk-37-1.png" style="display: block; margin: auto;" />
+<img src="E.coli_Analysis_files/figure-gfm/unnamed-chunk-35-1.png" style="display: block; margin: auto;" />
 
 ``` r
 pwpp(glm_emm)
 ```
 
-<img src="E.coli_Analysis_files/figure-gfm/unnamed-chunk-38-1.png" style="display: block; margin: auto;" />
+<img src="E.coli_Analysis_files/figure-gfm/unnamed-chunk-36-1.png" style="display: block; margin: auto;" />
 With so many sites, it’s nearly impossible to see what is going on,
 However, On the whole, Presumpscot River Main Stem Sites (Pxxx) and most
 Pleasant River sites (Plxxx) are Lower than the most polluted sites,
@@ -851,27 +815,142 @@ p <- ggplot(Ecoli_counts, aes(x = Year, y = N_Obs, fill= WQClass)) +
 p
 ```
 
-<img src="E.coli_Analysis_files/figure-gfm/unnamed-chunk-40-1.png" style="display: block; margin: auto;" />
+<img src="E.coli_Analysis_files/figure-gfm/unnamed-chunk-38-1.png" style="display: block; margin: auto;" />
+
+``` r
+
+ggsave('figures/ecoli_standards by year.pdf',
+       device = cairo_pdf, width = 9.5, height =7)
+```
 
 So, failure to meet instantaneous *E. coli* standards is a relatively
 common occurrence, occurring at least once at each site, although
 relatively rarely at most Main Stem sites on the Presumpscot.
 
-# Export Data for GIS
+# Assemble and Export Data for GIS
 
 ``` r
-glm_fit <- glm_fit %>%
+direct_values <- presumpscot_data %>%
+  filter(Site %in% recentsites & Year > 2014) %>%
+  group_by(Site) %>%
+  summarize(Avg_Log = mean(log(Ecoli), na.rm = TRUE),
+            #Geom_Mean = exp(Avg_Log),
+            SD_Log  = sd(log(Ecoli), na.rm = TRUE),
+            .groups = 'drop')
+
+lm_fit2 <- lm_fit %>%
+  rename(gm = response,
+         gm_LC = lower.CL,
+         gm_UC = upper.CL) %>%
+  select(-SE, -df)
+ 
+
+glm_fit2 <- glm_fit %>%
   rename(pFailIns = prob,
          pFail_LC = asymp.LCL,
          pFail_UC = asymp.UCL) %>%
   select(-SE, -df)
 
-Ecoli_gmeans <- Ecoli_gmeans %>%
-  rename(gm_LC = lower.CL,
-         gm_UC = upper.CL) %>%
-  left_join(glm_fit, by = 'Site')
+Ecoli_gmeans <- direct_values %>%
+  left_join(lm_fit2, by = 'Site') %>%
+  left_join(glm_fit2, by = 'Site') %>%
+
+  # Calculate a simplified Class based only on geometric means
+  mutate(Clss = if_else(gm <= 64,
+                        'Excellent',
+                        if_else(gm<= 126,
+                                'Good', 'Poor'))) %>%
+  # And Add in the criterion that no more than 10% or 20% of values can fail the
+  # instantaneous standard. Maine 90 day standard is that no more than 10%
+  # can exceed
+  mutate(Clss_Inst_10 = if_else(pFailIns > 0.1,
+                             'Poor', Clss),
+         Clss_Inst_20 = if_else(pFailIns > 0.2,
+                             'Poor', Clss))
 ```
 
 ``` r
 write_csv(Ecoli_gmeans, 'E_coli_Results.csv')
 ```
+
+# Plot Geometric Means by Site
+
+First, for simplicity, we use the output of the `emmeans()` function.
+However, the errors shown here are derived from a pooled error estimate,
+and thus do not give an adequate impression of whether some sites are
+highly variable or not.
+
+``` r
+ggplot(Ecoli_gmeans, aes(x = Site, y = gm)) + 
+  geom_col(aes(fill = Clss)) +
+
+  geom_linerange(aes(ymin = gm_LC, ymax = gm_UC)) +
+  
+  geom_hline(yintercept = 64, color = cbep_colors2()[1]) +
+  geom_hline(yintercept = 126, color = cbep_colors2()[6]) +
+  
+  annotate('text', x = 24, y = 80,  label = 'Class B Limit', size = 2.5) +
+  annotate('text', x = 24, y = 142, label = 'Class C Limit', size = 2.5) +
+
+  theme_cbep() +
+  scale_fill_manual(values = cbep_colors2()[4:1]) +
+  theme(axis.text.x=element_text(angle=90, vjust = .25, size = 9)) +
+  theme(legend.position = 'none') +
+  
+  xlab('Site') + 
+  ylab('Geometric Mean E.coli\n(CFU/100ml)')
+```
+
+<img src="E.coli_Analysis_files/figure-gfm/unnamed-chunk-41-1.png" style="display: block; margin: auto;" />
+
+``` r
+
+ggsave('figures/geom_means_by_site.pdf',
+       device = cairo_pdf, width = 7, height = 5)
+```
+
+Notice the obvious pattern. Conditions on the Main Stem (P015 through
+P200) are better than in most of the lateral tributaries, many of which
+fail to meet even Class C (geometric mean) standards. Using a pooled
+estimate of variance, the confidence intervals of the geometric means
+are dominated by scale, not by site to site variation in variability.
+
+Now we plot site by site means and standard deviations of log data. This
+provides direct graphical representation of site by site variability,
+measured on that log scale.
+
+``` r
+ggplot(Ecoli_gmeans, aes(x = Site, y = Avg_Log)) + 
+  geom_col(aes(fill = Clss)) +
+
+  geom_linerange(aes(ymin = Avg_Log -  SD_Log,
+                     ymax = Avg_Log +  SD_Log)) +
+  
+  geom_hline(yintercept = log(64), color = cbep_colors2()[1]) +
+  geom_hline(yintercept = log(126), color = cbep_colors2()[6]) +
+  
+  annotate('text', x = 24, y = 4.5,  label = 'Class B Limit', size = 2.5) +
+  annotate('text', x = 24, y = 5.25, label = 'Class C Limit', size = 2.5) +
+
+  theme_cbep() +
+  scale_fill_manual(values = cbep_colors2()[4:1]) +
+  theme(axis.text.x=element_text(angle=90, vjust = .25, size = 9)) +
+  theme(legend.position = 'none') +
+  
+  xlab('Site') + 
+  ylab('Mean of the Natural Log\nE.coli (CFU/100ml)')
+```
+
+<img src="E.coli_Analysis_files/figure-gfm/unnamed-chunk-42-1.png" style="display: block; margin: auto;" />
+
+``` r
+
+ggsave('figures/geom_means_by_site.pdf',
+       device = cairo_pdf, width = 7, height = 5)
+```
+
+What that shows is the assumptions of pooled variances for calculating
+error bars is not wildly unreasonable. While a few sites are more
+variable, variation at all sites are within a factor of one and one half
+to two or so. There is no indication that (on the log scale) sites with
+higher concentrations of bacteria have higher standard deviations too.

@@ -1,7 +1,7 @@
 ---
-title: "Data Analysis for Presumpscot WQ Monitoring Data"
+title: "Analysis of Dissolved Oxygen Data from Presumpscot Monitoring"
 author:  "Curtis C. Bohlen, Casco Bay Estuary Partnership"
-date: "12/29/2020"
+date: "12/30/2020"
 output:
   github_document:
     toc: true
@@ -450,28 +450,33 @@ long record, we may want to be more forgiving and allow a rare problem.  In the
 following, we accept zero or one exceedences of a standard before we declare the
 site to have failed that standard.
 
+Rather than expressing our results in 'Class AB', 'Class C', 'Non Attainment' 
+terms, which are unlikely to be widely understood by the SoCB audience, we
+express results in terms of 'Excellent', 'Good', and 'Poor', water quality.
+The thresholds, however, reflect Maine water quality standards.
+
 ```{r}
 do_results <- do_results %>%
 mutate(DO_Meets = if_else(DO_NA < 2,
                           if_else(DO_C < 2,
-                                  'Class AB',
-                                  'Class C'),
-                          'Class NA'),
+                                  'Excellent',
+                                  'Good'),
+                          'Poor'),
        PS_Meets = if_else(PS_NA < 2,
                           if_else(PS_C < 2,
-                                  'Class AB',
-                                  'Class C'),
-                          'Class NA'
+                                  'Excellent',
+                                  'Good'),
+                          'Poor'
                            ),
        Both_Meets =  if_else(DO_NA < 2 & PS_NA < 2,
                           if_else(DO_C < 2 & PS_C < 2,
-                                  'AB',
-                                  'C'),
-                          'NA')) %>%
+                                  'Excellent',
+                                  'Good'),
+                          'Poor')) %>%
   
   # The following has no effect on the achieved classification in our data.
   # We include it here for completeness.
-  mutate(All_Meets = if_else(DO_Avg < 6.5, 'NA', Both_Meets))
+  mutate(All_Meets = if_else(DO_Avg < 6.5, 'Poor', Both_Meets))
 ```
 
 ```{r}
@@ -532,9 +537,9 @@ ps_ins <- presumpscot_data %>%
   filter(Site %in% recentsites) %>%
   group_by(Site, Year) %>%
   summarise(Sample = sum(! is.na(PctSat)),
-            AB = sum(PctSat>=75, na.rm=TRUE),
-            C = sum(PctSat<75 & PctSat>=60, na.rm=TRUE),
-            `NA` = sum(PctSat<60, na.rm=TRUE),
+            Excellent = sum(PctSat>=75, na.rm=TRUE),
+            Good = sum(PctSat<75 & PctSat>=60, na.rm=TRUE),
+            Poor = sum(PctSat<60, na.rm=TRUE),
             PctSat_Avg = mean(PctSat, na.rm = TRUE),
             PctSat_SD = sd(PctSat, na.rm = TRUE),
             .groups = 'drop')
