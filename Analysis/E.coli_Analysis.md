@@ -614,7 +614,7 @@ estimating geometric mean *E. coli* values.
 
 Do we can model sites directly, ignoring subtleties about sampling
 history, or we can use multi-level modeling to estimate marginal means
-taking into account sampling history. lets compare results.
+taking into account sampling history. Let's compare results.
 
 # Linear Models Based on Recent Data
 
@@ -680,7 +680,7 @@ than from the simple linear model, but the two are highly correlated we
 see no real advantage to one over the other here, especially as the two
 models barely diverge for the sites that meet water quality criteria.
 
-Lets check the width of the confidence intervals to see if more
+Let's check the width of the confidence intervals to see if more
 sophisticated models gained us any precision in our estimates.
 
 ``` r
@@ -699,7 +699,7 @@ tibble(lm_width   = lm_fit$upper.CL   - lm_fit$lower.CL,
 
 <img src="E.coli_Analysis_files/figure-gfm/unnamed-chunk-31-1.png" style="display: block; margin: auto;" />
 
-So, in fact, the mixed model shows slightly LARGER confidence intervals
+In fact, the mixed model shows slightly LARGER confidence intervals
 than a simple linear model. This is, presumably because the year to year
 variation is so large, it swamps out the advantage of accounting for
 month to month variability directly.
@@ -781,7 +781,7 @@ with a fairly large group somewhere in the middle.
 ## Graphic by Site and Year
 
 First, we display graphics of all sites with at least five years of
-data. We do not use this graphic in SoCB, a being too complex. Also, as
+data. We do not use this graphic in SoCB, it being too complex. Also, as
 we have no evidence for long-term trends in water quality across all
 sites, we can simplify the presentation in SoCB if we focus only on
 sites for which we have recent data.
@@ -950,7 +950,7 @@ ggsave('figures/geom_means_by_site.pdf',
 ```
 
 What that shows is the assumptions of pooled variances for calculating
-error bars is not wildly unreasonable. While a few sites are more
+error bars are not wildly unreasonable. While a few sites are more
 variable, variation at all sites are within a factor of one and one half
 to two or so. There is no indication that (on the log scale) sites with
 higher concentrations of bacteria have higher standard deviations too.
