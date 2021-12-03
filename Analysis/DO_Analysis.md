@@ -763,13 +763,13 @@ do_results <- do_ins %>%
 
 ## Add Code To calculate Class
 
-To Calculate teh Observed Class, we need to look at the probability of
+To Calculate the Observed Class, we need to look at the probability of
 violating water quality thresholds.
 
 Technically, any violation of standards for dissolved oxygen controls
 whether a violation of water quality standards has occurred. But on some
 level, with a long record, we may want to be more forgiving and allow a
-rare problem. In the following, we accept zero or one exceedences of a
+rare problem. In the following, we accept zero or one exceedances of a
 standard before we declare the site to have failed that standard.
 
 Rather than expressing our results in ‘Class AB’, ‘Class C’, ‘Non
