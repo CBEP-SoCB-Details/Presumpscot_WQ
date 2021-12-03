@@ -39,7 +39,7 @@ it is worth providing limited metadata on the meaning of each column.
 ## Metadata for `E_coli_Results.csv`
 *  Site:  Presumpscot Regional Land Trust / Presumpscot River Watch Site Code  
 *  Avg_Log:  The arithmetic mean of the natural log of the *E. coli* values.  
-*  SD_Log:   The standard deviation of the of the natural log of the *E. coli*
+*  SD_Log:   The standard deviation of the natural log of the *E. coli*
    values.
 *  gm:    Geometric Mean *E. coli* value over the most recent five years
    (2015 through 2019) in Colony  Forming Units per 100 ml, according to
