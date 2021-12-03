@@ -394,7 +394,7 @@ differences among sites, and more specifically, on estimating geometric mean
 
 Do we can model sites directly, ignoring subtleties about sampling history,
 or we can use multi-level modeling to estimate marginal means taking into
-account sampling history.  lets compare results.
+account sampling history.  Let's compare results.
 
 # Linear Models Based on Recent Data
 We fit a simple linear model, and a model treating Years as a random factor, to
@@ -455,7 +455,7 @@ the simple linear model, but the two are highly correlated we see no real
 advantage to one over the other here, especially as the two models barely 
 diverge for the sites that meet water quality criteria.
 
-Lets check the width of the confidence intervals to see if more sophisticated
+Let's check the width of the confidence intervals to see if more sophisticated
 models gained us any precision in our estimates.
 ```{r}
 tibble(lm_width   = lm_fit$upper.CL   - lm_fit$lower.CL,
@@ -472,7 +472,7 @@ tibble(lm_width   = lm_fit$upper.CL   - lm_fit$lower.CL,
 
 ```
 
-So, in fact, the mixed model shows slightly LARGER confidence intervals than
+The mixed model shows slightly LARGER confidence intervals than
 a simple linear model.  This is, presumably because the year to year variation
 is so large, it swamps out the advantage of accounting for month to month
 variability directly.
@@ -542,7 +542,7 @@ somewhere in the middle.
 
 ## Graphic by Site and Year
 First, we display graphics of all sites with at least five years of data.  We do
-not use this graphic in SoCB, a being too complex. Also, as we have no evidence 
+not use this graphic in SoCB, as it is too complex. Also, as we have no evidence 
 for long-term trends in water quality across all sites, we can simplify
 the presentation in SoCB if we focus only on sites for which we have recent data.
 ```{r}
@@ -689,9 +689,10 @@ ggplot(Ecoli_gmeans, aes(x = Site, y = Avg_Log)) +
 ggsave('figures/geom_means_by_site.pdf',
        device = cairo_pdf, width = 7, height = 5)
 ```
-What that shows is the assumptions of pooled variances for calculating error
+What that shows is the assumption of pooled variances for calculating error
 bars is not wildly unreasonable.  While a few sites are more variable,
 variation at all sites are within a factor of one and one half to two or so.
-There is no indication that (on the log scale) sites with higher concentrations of bacteria have higher standard deviations too.
+There is no indication that (on the log scale) sites with higher concentrations 
+of bacteria have higher standard deviations too.
 
 

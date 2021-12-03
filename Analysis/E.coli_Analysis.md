@@ -3,38 +3,38 @@ Analysis of Bacteria Data from Presumpscot Monitoring
 Curtis C. Bohlen, Casco Bay Estuary Partnership
 12/30/2020
 
-  - [Introduction](#introduction)
-      - [Maine’s Numeric Water Quality
+-   [Introduction](#introduction)
+    -   [Maine’s Numeric Water Quality
         Standards](#maines-numeric-water-quality-standards)
-  - [Import Libraries](#import-libraries)
-  - [Import Data](#import-data)
-      - [Folders](#folders)
-      - [Data](#data)
-  - [Lists of Sites for Specific
+-   [Import Libraries](#import-libraries)
+-   [Import Data](#import-data)
+    -   [Folders](#folders)
+    -   [Data](#data)
+-   [Lists of Sites for Specific
     Analyses](#lists-of-sites-for-specific-analyses)
-      - [Sites for Trend Analysis](#sites-for-trend-analysis)
-      - [Recent Sites](#recent-sites)
-  - [*E. coli* Histograms](#e.-coli-histograms)
-  - [What Distribution Fits?](#what-distribution-fits)
-  - [Compare Possible Distributions](#compare-possible-distributions)
-      - [Direct Fits Using VGLM](#direct-fits-using-vglm)
-          - [Comparing Two Different Lognormal
+    -   [Sites for Trend Analysis](#sites-for-trend-analysis)
+    -   [Recent Sites](#recent-sites)
+-   [*E. coli* Histograms](#e-coli-histograms)
+-   [What Distribution Fits?](#what-distribution-fits)
+-   [Compare Possible Distributions](#compare-possible-distributions)
+    -   [Direct Fits Using VGLM](#direct-fits-using-vglm)
+        -   [Comparing Two Different Lognormal
             Fits](#comparing-two-different-lognormal-fits)
-          - [Prepare Gamma Fit for
+        -   [Prepare Gamma Fit for
             Graphing](#prepare-gamma-fit-for-graphing)
-      - [Plot Candidate Distributions](#plot-candidate-distributions)
-      - [QQPlots](#qqplots)
-      - [Compare Log Likelihoods](#compare-log-likelihoods)
-  - [Linear Models Based on Recent
+    -   [Plot Candidate Distributions](#plot-candidate-distributions)
+    -   [QQPlots](#qqplots)
+    -   [Compare Log Likelihoods](#compare-log-likelihoods)
+-   [Linear Models Based on Recent
     Data](#linear-models-based-on-recent-data)
-      - [Examine The Mixed Model](#examine-the-mixed-model)
-  - [Violations of Instantaneous *E. coli*
-    Standards](#violations-of-instantaneous-e.-coli-standards)
-      - [Binomial Model](#binomial-model)
-      - [Graphic by Site and Year](#graphic-by-site-and-year)
-  - [Assemble and Export Data for
+    -   [Examine The Mixed Model](#examine-the-mixed-model)
+-   [Violations of Instantaneous *E. coli*
+    Standards](#violations-of-instantaneous-e-coli-standards)
+    -   [Binomial Model](#binomial-model)
+    -   [Graphic by Site and Year](#graphic-by-site-and-year)
+-   [Assemble and Export Data for
     GIS](#assemble-and-export-data-for-gis)
-  - [Plot Geometric Means by Site](#plot-geometric-means-by-site)
+-   [Plot Geometric Means by Site](#plot-geometric-means-by-site)
 
 <img
   src="https://www.cascobayestuary.org/wp-content/uploads/2014/04/logo_sm.jpg"
@@ -61,7 +61,7 @@ Maine’s numerical water quality standards for the summer months, as laid
 out in statute (38 MRSA 465) are as follows:
 
 | Class | DO ppm “Instantaneous” | DO ppm 30 Day Avg | Percent Saturation | *E. coli* (\# per 100 ml) Instantaneous | *E. coli* (\# per 100 ml)Geom. Mean |
-| ----- | ---------------------- | ----------------- | ------------------ | --------------------------------------- | ----------------------------------- |
+|-------|------------------------|-------------------|--------------------|-----------------------------------------|-------------------------------------|
 | A     | 7                      |                   | 75 %               |                                         |                                     |
 | B     | 7                      |                   | 75 %               | 236                                     | 64                                  |
 | C     | 5                      | 6.5               | 60 %               | 236                                     | 126                                 |
@@ -75,17 +75,23 @@ than 10% of the time over a 90 day period.
 
 ``` r
 library(fitdistrplus)
+#> Warning: package 'fitdistrplus' was built under R version 4.0.5
 #> Loading required package: MASS
 #> Loading required package: survival
 library(VGAM)       # This is a huge package, here, offering many distributions
 #> Loading required package: stats4
 #> Loading required package: splines
 library(tidyverse)
-#> -- Attaching packages --------------------------------------- tidyverse 1.3.0 --
-#> v ggplot2 3.3.2     v purrr   0.3.4
-#> v tibble  3.0.4     v dplyr   1.0.2
-#> v tidyr   1.1.2     v stringr 1.4.0
-#> v readr   1.4.0     v forcats 0.5.0
+#> Warning: package 'tidyverse' was built under R version 4.0.5
+#> -- Attaching packages --------------------------------------- tidyverse 1.3.1 --
+#> v ggplot2 3.3.5     v purrr   0.3.4
+#> v tibble  3.1.6     v dplyr   1.0.7
+#> v tidyr   1.1.4     v stringr 1.4.0
+#> v readr   2.1.0     v forcats 0.5.1
+#> Warning: package 'ggplot2' was built under R version 4.0.5
+#> Warning: package 'tidyr' was built under R version 4.0.5
+#> Warning: package 'dplyr' was built under R version 4.0.5
+#> Warning: package 'forcats' was built under R version 4.0.5
 #> -- Conflicts ------------------------------------------ tidyverse_conflicts() --
 #> x tidyr::fill()   masks VGAM::fill()
 #> x dplyr::filter() masks stats::filter()
@@ -93,6 +99,7 @@ library(tidyverse)
 #> x dplyr::select() masks MASS::select()
 
 library(lme4)
+#> Warning: package 'lme4' was built under R version 4.0.5
 #> Loading required package: Matrix
 #> 
 #> Attaching package: 'Matrix'
@@ -100,6 +107,7 @@ library(lme4)
 #> 
 #>     expand, pack, unpack
 library(emmeans)
+#> Warning: package 'emmeans' was built under R version 4.0.5
 
 library(CBEPgraphics)
 load_cbep_fonts()
@@ -130,7 +138,9 @@ fn <- 'presumpscot_CORRECTED.csv'
 presumpscot_data <- read_csv(file.path(sibling, fn),
     col_types = cols(Ecoli = col_double(),
                      X1 = col_skip()))
-#> Warning: Missing column names filled in: 'X1' [1]
+#> New names:
+#> * `` -> ...1
+#> Warning: The following named parsers don't match the column names: X1
 
 presumpscot_data <- presumpscot_data %>%
   select (-Time, -DO, -PctSat) %>%
@@ -173,7 +183,6 @@ trendsites <- presumpscot_data %>%
   summarise(yrssampled = sum(sampled)) %>%
   filter(yrssampled>=5) %>%
   pull(Site)
-#> `summarise()` ungrouping output (override with `.groups` argument)
 trendsites
 #>  [1] "BB010" "BL010" "CW010" "CW020" "DB010" "DG010" "IN010" "L010"  "L020" 
 #> [10] "M010"  "M030"  "N010"  "OB010" "P020"  "P030"  "P089"  "P110"  "P135" 
@@ -438,7 +447,6 @@ abline(0,1)
 <img src="E.coli_Analysis_files/figure-gfm/unnamed-chunk-16-1.png" style="display: block; margin: auto;" />
 
 ``` r
-
 par(oldpar)
 ```
 
@@ -614,7 +622,7 @@ estimating geometric mean *E. coli* values.
 
 Do we can model sites directly, ignoring subtleties about sampling
 history, or we can use multi-level modeling to estimate marginal means
-taking into account sampling history. lets compare results.
+taking into account sampling history. Let’s compare results.
 
 # Linear Models Based on Recent Data
 
@@ -680,7 +688,7 @@ than from the simple linear model, but the two are highly correlated we
 see no real advantage to one over the other here, especially as the two
 models barely diverge for the sites that meet water quality criteria.
 
-Lets check the width of the confidence intervals to see if more
+Let’s check the width of the confidence intervals to see if more
 sophisticated models gained us any precision in our estimates.
 
 ``` r
@@ -699,10 +707,10 @@ tibble(lm_width   = lm_fit$upper.CL   - lm_fit$lower.CL,
 
 <img src="E.coli_Analysis_files/figure-gfm/unnamed-chunk-31-1.png" style="display: block; margin: auto;" />
 
-So, in fact, the mixed model shows slightly LARGER confidence intervals
-than a simple linear model. This is, presumably because the year to year
-variation is so large, it swamps out the advantage of accounting for
-month to month variability directly.
+The mixed model shows slightly LARGER confidence intervals than a simple
+linear model. This is, presumably because the year to year variation is
+so large, it swamps out the advantage of accounting for month to month
+variability directly.
 
 We thus see no advantage to using the more complex models for our
 purposes, which is to summarize results in a compact manner for figures
@@ -781,7 +789,7 @@ with a fairly large group somewhere in the middle.
 ## Graphic by Site and Year
 
 First, we display graphics of all sites with at least five years of
-data. We do not use this graphic in SoCB, a being too complex. Also, as
+data. We do not use this graphic in SoCB, as it is too complex. Also, as
 we have no evidence for long-term trends in water quality across all
 sites, we can simplify the presentation in SoCB if we focus only on
 sites for which we have recent data.
@@ -818,7 +826,6 @@ p
 <img src="E.coli_Analysis_files/figure-gfm/unnamed-chunk-38-1.png" style="display: block; margin: auto;" />
 
 ``` r
-
 ggsave('figures/ecoli_standards by year.pdf',
        device = cairo_pdf, width = 9.5, height =7)
 ```
@@ -904,7 +911,6 @@ ggplot(Ecoli_gmeans, aes(x = Site, y = gm)) +
 <img src="E.coli_Analysis_files/figure-gfm/unnamed-chunk-41-1.png" style="display: block; margin: auto;" />
 
 ``` r
-
 ggsave('figures/geom_means_by_site.pdf',
        device = cairo_pdf, width = 7, height = 5)
 ```
@@ -944,12 +950,11 @@ ggplot(Ecoli_gmeans, aes(x = Site, y = Avg_Log)) +
 <img src="E.coli_Analysis_files/figure-gfm/unnamed-chunk-42-1.png" style="display: block; margin: auto;" />
 
 ``` r
-
 ggsave('figures/geom_means_by_site.pdf',
        device = cairo_pdf, width = 7, height = 5)
 ```
 
-What that shows is the assumptions of pooled variances for calculating
+What that shows is the assumption of pooled variances for calculating
 error bars is not wildly unreasonable. While a few sites are more
 variable, variation at all sites are within a factor of one and one half
 to two or so. There is no indication that (on the log scale) sites with
