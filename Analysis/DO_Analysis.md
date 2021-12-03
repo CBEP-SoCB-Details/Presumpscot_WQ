@@ -3,35 +3,35 @@ Analysis of Dissolved Oxygen Data from Presumpscot Monitoring
 Curtis C. Bohlen, Casco Bay Estuary Partnership
 12/30/2020
 
-  - [Introduction](#introduction)
-  - [Maine’s Numeric Water Quality
+-   [Introduction](#introduction)
+-   [Maine’s Numeric Water Quality
     Standards](#maines-numeric-water-quality-standards)
-  - [Import Libraries](#import-libraries)
-  - [Import Data](#import-data)
-      - [Correct Probable Data Errors](#correct-probable-data-errors)
-      - [Create a “Surface Water Only” Ddata
+-   [Import Libraries](#import-libraries)
+-   [Import Data](#import-data)
+    -   [Correct Probable Data Errors](#correct-probable-data-errors)
+    -   [Create a “Surface Water Only” Ddata
         Set](#create-a-surface-water-only-ddata-set)
-  - [List Sites for Specific
+-   [List Sites for Specific
     Analyses](#list-sites-for-specific-analyses)
-      - [Trend Analysis](#trend-analysis)
-      - [Recent Sites](#recent-sites)
-  - [DO Graphics](#do-graphics)
-      - [Histograms](#histograms)
-      - [Percent Saturation vs. DO](#percent-saturation-vs.-do)
-  - [Linear Models](#linear-models)
-      - [Dissolved Oxygen](#dissolved-oxygen)
-      - [Percent Saturation](#percent-saturation)
-      - [Models Including Temperature](#models-including-temperature)
-          - [Graph Annual Average
+    -   [Trend Analysis](#trend-analysis)
+    -   [Recent Sites](#recent-sites)
+-   [DO Graphics](#do-graphics)
+    -   [Histograms](#histograms)
+    -   [Percent Saturation vs. DO](#percent-saturation-vs-do)
+-   [Linear Models](#linear-models)
+    -   [Dissolved Oxygen](#dissolved-oxygen)
+    -   [Percent Saturation](#percent-saturation)
+    -   [Models Including Temperature](#models-including-temperature)
+        -   [Graph Annual Average
             Temperatures](#graph-annual-average-temperatures)
-          - [Construct a Linear Mixed
+        -   [Construct a Linear Mixed
             Model](#construct-a-linear-mixed-model)
-  - [Export Tabular Data for GIS](#export-tabular-data-for-gis)
-      - [Add Code To calculate Class](#add-code-to-calculate-class)
-  - [Complex Site by Time Graphics](#complex-site-by-time-graphics)
-      - [Instantaneous DO Standards (7, 5
+-   [Export Tabular Data for GIS](#export-tabular-data-for-gis)
+    -   [Add Code To calculate Class](#add-code-to-calculate-class)
+-   [Complex Site by Time Graphics](#complex-site-by-time-graphics)
+    -   [Instantaneous DO Standards (7, 5
         mg/l)](#instantaneous-do-standards-7-5-mgl)
-      - [Instantaneous Saturation Standards (75%,
+    -   [Instantaneous Saturation Standards (75%,
         60%)](#instantaneous-saturation-standards-75-60)
 
 <img
@@ -62,7 +62,7 @@ Maine’s numerical water quality standards for the summer months, as laid
 out in statute (38 MRSA 465) are as follows:
 
 | Class | DO ppm “Instantaneous” | DO ppm 30 Day Avg | Percent Saturation | *E. coli* (\# per 100 ml) Instantaneous | *E. coli* (\# per 100 ml)Geom. Mean |
-| ----- | ---------------------- | ----------------- | ------------------ | --------------------------------------- | ----------------------------------- |
+|-------|------------------------|-------------------|--------------------|-----------------------------------------|-------------------------------------|
 | A     | 7                      |                   | 75 %               |                                         |                                     |
 | B     | 7                      |                   | 75 %               | 236                                     | 64                                  |
 | C     | 5                      | 6.5               | 60 %               | 236                                     | 126                                 |
@@ -76,20 +76,28 @@ than 10% of the time over a 90 day period.
 
 ``` r
 library(fitdistrplus)
+#> Warning: package 'fitdistrplus' was built under R version 4.0.5
 #> Loading required package: MASS
 #> Loading required package: survival
 library(emmeans)
+#> Warning: package 'emmeans' was built under R version 4.0.5
 library(tidyverse)
-#> -- Attaching packages --------------------------------------- tidyverse 1.3.0 --
-#> v ggplot2 3.3.2     v purrr   0.3.4
-#> v tibble  3.0.4     v dplyr   1.0.2
-#> v tidyr   1.1.2     v stringr 1.4.0
-#> v readr   1.4.0     v forcats 0.5.0
+#> Warning: package 'tidyverse' was built under R version 4.0.5
+#> -- Attaching packages --------------------------------------- tidyverse 1.3.1 --
+#> v ggplot2 3.3.5     v purrr   0.3.4
+#> v tibble  3.1.6     v dplyr   1.0.7
+#> v tidyr   1.1.4     v stringr 1.4.0
+#> v readr   2.1.0     v forcats 0.5.1
+#> Warning: package 'ggplot2' was built under R version 4.0.5
+#> Warning: package 'tidyr' was built under R version 4.0.5
+#> Warning: package 'dplyr' was built under R version 4.0.5
+#> Warning: package 'forcats' was built under R version 4.0.5
 #> -- Conflicts ------------------------------------------ tidyverse_conflicts() --
 #> x dplyr::filter() masks stats::filter()
 #> x dplyr::lag()    masks stats::lag()
 #> x dplyr::select() masks MASS::select()
 library(lme4)
+#> Warning: package 'lme4' was built under R version 4.0.5
 #> Loading required package: Matrix
 #> 
 #> Attaching package: 'Matrix'
@@ -113,7 +121,9 @@ fn <- 'presumpscot_CORRECTED.csv'
 presumpscot_data <- read_csv(file.path(sibling, fn),
     col_types = cols(Ecoli = col_double(),
                      X1 = col_skip()))
-#> Warning: Missing column names filled in: 'X1' [1]
+#> New names:
+#> * `` -> ...1
+#> Warning: The following named parsers don't match the column names: X1
 
 presumpscot_data <- presumpscot_data %>%
   select (-Time, -Ecoli, -Flag) %>%
@@ -214,7 +224,6 @@ trendsites <- presumpscot_data %>%
   summarise(yrssampled = sum(sampled)) %>%
   filter(yrssampled>=5) %>%
   pull(Site)
-#> `summarise()` ungrouping output (override with `.groups` argument)
 trendsites
 #>  [1] "BB010" "BL010" "CW010" "CW020" "DB010" "DG010" "IN010" "L010"  "L020" 
 #> [10] "M010"  "M030"  "N010"  "OB010" "P020"  "P030"  "P089"  "P110"  "P135" 
@@ -619,7 +628,6 @@ presumpscot_data %>%
   summarize(mean_temp = mean(Temp, na.rm = TRUE)) %>%
   ggplot(aes(Year, mean_temp)) +
   geom_line()
-#> `summarise()` ungrouping output (override with `.groups` argument)
 #> Warning: Removed 1 row(s) containing missing values (geom_path).
 ```
 
@@ -719,7 +727,7 @@ And there is no meaningful trend over time.
 
 We want to create a table of results to import into GIS. We have
 interest in both mean dissolved oxygen levels and frequency of
-exceedences of DO criteria.
+exceedances of DO criteria.
 
 We focus on the last five years of the record, and do not want to
 segregate by year, so we recalculate site by site frequencies and
@@ -763,13 +771,13 @@ do_results <- do_ins %>%
 
 ## Add Code To calculate Class
 
-To Calculate teh Observed Class, we need to look at the probability of
+To Calculate the Observed Class, we need to look at the probability of
 violating water quality thresholds.
 
 Technically, any violation of standards for dissolved oxygen controls
 whether a violation of water quality standards has occurred. But on some
 level, with a long record, we may want to be more forgiving and allow a
-rare problem. In the following, we accept zero or one exceedences of a
+rare problem. In the following, we accept zero or one exceedances of a
 standard before we declare the site to have failed that standard.
 
 Rather than expressing our results in ‘Class AB’, ‘Class C’, ‘Non
@@ -873,7 +881,6 @@ ps_ins <- presumpscot_data %>%
 ```
 
 ``` r
-
 plt <- ps_ins %>%
   select(-Sample, -PctSat_Avg, -PctSat_SD) %>%
   pivot_longer(-c(Site, Year, ),
