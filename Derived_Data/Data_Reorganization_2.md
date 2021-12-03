@@ -3,26 +3,26 @@ Data Organization for Presumpscot WQ Monitoring Data
 Curtis C. Bohlen, Casco Bay Estuary Partnership
 12/19/2020
 
-  - [Inroduction](#inroduction)
-  - [Import Libraries](#import-libraries)
-  - [Import Data](#import-data)
-      - [Load data](#load-data)
-  - [Clean the Data](#clean-the-data)
-  - [Prepare Data](#prepare-data)
-  - [Check the *E. coli* data](#check-the-e.-coli-data)
-  - [Data Completeness](#data-completeness)
-  - [Exploring Field Duplicates](#exploring-field-duplicates)
-      - [Identify Unflagged Duplicates](#identify-unflagged-duplicates)
-      - [Flag 2012 Unflagged Duplicate](#flag-2012-unflagged-duplicate)
-      - [Deal with 2017 and 2019.](#deal-with-2017-and-2019.)
-          - [Generate a Vector Flagging Even
+-   [Inroduction](#inroduction)
+-   [Import Libraries](#import-libraries)
+-   [Import Data](#import-data)
+    -   [Load data](#load-data)
+-   [Clean the Data](#clean-the-data)
+-   [Prepare Data](#prepare-data)
+-   [Check the *E. coli* data](#check-the-e-coli-data)
+-   [Data Completeness](#data-completeness)
+-   [Exploring Field Duplicates](#exploring-field-duplicates)
+    -   [Identify Unflagged Duplicates](#identify-unflagged-duplicates)
+    -   [Flag 2012 Unflagged Duplicate](#flag-2012-unflagged-duplicate)
+    -   [Deal with 2017 and 2019.](#deal-with-2017-and-2019)
+        -   [Generate a Vector Flagging Even
             Numbers](#generate-a-vector-flagging-even-numbers)
-          - [Calculate a Selection of
+        -   [Calculate a Selection of
             Duplicates](#calculate-a-selection-of-duplicates)
-          - [Combine Selection Vectors](#combine-selection-vectors)
-  - [Correcting the QC Flags](#correcting-the-qc-flags)
-  - [Final Cleanup](#final-cleanup)
-  - [Save Data as CSV](#save-data-as-csv)
+        -   [Combine Selection Vectors](#combine-selection-vectors)
+-   [Correcting the QC Flags](#correcting-the-qc-flags)
+-   [Final Cleanup](#final-cleanup)
+-   [Save Data as CSV](#save-data-as-csv)
 
 <img
   src="https://www.cascobayestuary.org/wp-content/uploads/2014/04/logo_sm.jpg"
@@ -35,18 +35,23 @@ Preliminary analysis reveals that 2018 and 2019 data were delivered
 incomplete, without all supplementary data. While for the most part,
 that simply reduces analytic options, it also drops the flags indicating
 QA/QC duplicates. Here I have added arbitrary flags to identify one of
-each replicate sample as as QA/QC sample.
+each replicate sample as QA/QC sample.
 
 # Import Libraries
 
 ``` r
 library(readxl)
 library(tidyverse)
-#> -- Attaching packages --------------------------------------- tidyverse 1.3.0 --
-#> v ggplot2 3.3.2     v purrr   0.3.4
-#> v tibble  3.0.4     v dplyr   1.0.2
-#> v tidyr   1.1.2     v stringr 1.4.0
-#> v readr   1.4.0     v forcats 0.5.0
+#> Warning: package 'tidyverse' was built under R version 4.0.5
+#> -- Attaching packages --------------------------------------- tidyverse 1.3.1 --
+#> v ggplot2 3.3.5     v purrr   0.3.4
+#> v tibble  3.1.6     v dplyr   1.0.7
+#> v tidyr   1.1.4     v stringr 1.4.0
+#> v readr   2.1.0     v forcats 0.5.1
+#> Warning: package 'ggplot2' was built under R version 4.0.5
+#> Warning: package 'tidyr' was built under R version 4.0.5
+#> Warning: package 'dplyr' was built under R version 4.0.5
+#> Warning: package 'forcats' was built under R version 4.0.5
 #> -- Conflicts ------------------------------------------ tidyverse_conflicts() --
 #> x dplyr::filter() masks stats::filter()
 #> x dplyr::lag()    masks stats::lag()
@@ -224,9 +229,6 @@ presumpscot_data <- Prelim_presumpscot_data2 %>%
                        as.numeric(substr(Ecoli,2,nchar(Ecoli))),
                        as.numeric(Ecoli))) %>%
   arrange(Date, Site)
-#> Warning: Problem with `mutate()` input `value`.
-#> i NAs introduced by coercion
-#> i Input `value` is `if_else(...)`.
 #> Warning in replace_with(out, !condition, false, fmt_args(~false), glue("length
 #> of {fmt_args(~condition)}")): NAs introduced by coercion
 ```
@@ -242,8 +244,6 @@ those are either left or right censored.
 2.  Did left censored values get converted appropriately?
 3.  Did right censored vlaues get converted appropriately?
 4.  What do high uncensored values look like?
-
-<!-- end list -->
 
 ``` r
 presumpscot_data %>% select(Ecoli, qualifier, value) %>% filter( is.na(value) & ! is.na(Ecoli))
@@ -287,10 +287,10 @@ presumpscot_data %>% select(Ecoli, qualifier, value) %>% filter( qualifier == ''
 ```
 
 So, we’ve addressed all the right censored observations (no new NAs) and
-there is formally only a single left censored observation\! That’s
-pretty remarkable. And it means we can ignore it for any practical
-purpose. In effect, we can treat these data as only right censored, not
-left censored.
+there is formally only a single left censored observation! That’s pretty
+remarkable. And it means we can ignore it for any practical purpose. In
+effect, we can treat these data as only right censored, not left
+censored.
 
 Note that some right censored values appear to have been inconsistently
 coded as 2419.2 instead of 2419.6. I suspect those are errors in coding,
@@ -424,7 +424,7 @@ to make in 2017 and 2019.
 The 2012 mis-coded sample is for Site = BL010, Date = 2012-08-25. The
 two samples from that year certainly look like field duplicates. All
 parameters are similar. This can be corrected by recoding the one with
-Temp == 17.2 as a Duplicate.
+Temp == 17.2 as a duplicate.
 
 ``` r
 index2012 <- with(presumpscot_data, (Date == as.Date("2012-08-25") &
@@ -432,9 +432,9 @@ index2012 <- with(presumpscot_data, (Date == as.Date("2012-08-25") &
                        Temp == 17.2) )
 presumpscot_data[index2012,]
 #> # A tibble: 1 x 13
-#>   Site  Name   Year Date                Time                QC    Depth  Temp
-#>   <fct> <chr> <dbl> <dttm>              <dttm>              <chr> <dbl> <dbl>
-#> 1 BL010 BLAC~  2012 2012-08-25 00:00:00 1899-12-31 07:21:00 NA       NA  17.2
+#>   Site  Name      Year Date                Time                QC    Depth  Temp
+#>   <fct> <chr>    <dbl> <dttm>              <dttm>              <chr> <dbl> <dbl>
+#> 1 BL010 BLACK B~  2012 2012-08-25 00:00:00 1899-12-31 07:21:00 NA       NA  17.2
 #> # ... with 5 more variables: DO <dbl>, PctSat <dbl>, Ecoli <chr>,
 #> #   qualifier <chr>, value <dbl>
 ```
