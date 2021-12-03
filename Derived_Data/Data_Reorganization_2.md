@@ -35,7 +35,7 @@ Preliminary analysis reveals that 2018 and 2019 data were delivered
 incomplete, without all supplementary data. While for the most part,
 that simply reduces analytic options, it also drops the flags indicating
 QA/QC duplicates. Here I have added arbitrary flags to identify one of
-each replicate sample as as QA/QC sample.
+each replicate sample as QA/QC sample.
 
 # Import Libraries
 
@@ -424,7 +424,7 @@ to make in 2017 and 2019.
 The 2012 mis-coded sample is for Site = BL010, Date = 2012-08-25. The
 two samples from that year certainly look like field duplicates. All
 parameters are similar. This can be corrected by recoding the one with
-Temp == 17.2 as a Duplicate.
+Temp == 17.2 as a duplicate.
 
 ``` r
 index2012 <- with(presumpscot_data, (Date == as.Date("2012-08-25") &
